@@ -1,0 +1,134 @@
+/* Drag handle styles - reduced size */
+.column-drag-handle,
+.bookmark-drag-handle {
+  cursor: grab !important;
+  color: #64748b;
+  padding: 4px; /* Reduced padding */
+  margin-right: 6px; /* Reduced right margin */
+  opacity: 0.6; /* Lower opacity */
+  transition: all 0.2s ease;
+  touch-action: none;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px; /* Reduced font size */
+  user-select: none;
+  width: 16px; /* Reduced width */
+  height: 16px; /* Reduced height */
+  min-width: 16px;
+  min-height: 16px;
+  border-radius: 3px;
+}
+
+.column-drag-handle:hover,
+.bookmark-drag-handle:hover {
+  opacity: 0.9; /* Lower hover opacity */
+  color: #2563eb;
+  transform: scale(1.05); /* Reduced hover scale effect */
+  background-color: rgba(226, 232, 240, 0.5);
+}
+
+/* Ensure drag handle is always visible */
+.column-drag-handle::before,
+.bookmark-drag-handle::before {
+  content: "⠿";
+  display: inline-block;
+  font-size: 14px; /* Reduced font size */
+  line-height: 1;
+}
+
+/* Global state during dragging */
+body.dragging {
+  cursor: grabbing !important;
+}
+
+body.dragging .column-drag-handle,
+body.dragging .bookmark-drag-handle {
+  cursor: grabbing !important;
+}
+
+/* Column drag states */
+.column-chosen {
+  background-color: #f1f5f9 !important;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important;
+  z-index: 10;
+}
+
+.column-ghost {
+  opacity: 0.5;
+  background: #f0f0f0;
+}
+
+.column-drag {
+  opacity: 0.8;
+  background-color: #f8fafc !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+  transform: rotate(0.5deg); /* Reduced rotation angle */
+}
+
+/* Bookmark drag states */
+.bookmark-chosen {
+  background-color: #f1f5f9 !important;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important;
+  z-index: 10;
+}
+
+.bookmark-ghost {
+  opacity: 0.5;
+  background: #f0f0f0;
+}
+
+.bookmark-drag {
+  opacity: 0.8;
+  background-color: #ffffff !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+  transform: rotate(0.5deg); /* Reduced rotation angle */
+}
+
+/* Currently being dragged element */
+.being-dragged {
+  opacity: 0.9 !important;
+  transform: scale(1.01) !important; /* Reduced scale */
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+  z-index: 1000 !important;
+  pointer-events: none;
+}
+
+/* Drop zone highlight */
+.sortable-ghost {
+  background-color: #f1f5f9 !important;
+  border: 2px dashed #3b82f6 !important;
+  opacity: 0.7 !important;
+}
+
+/* Disable text selection */
+.dragging * {
+  user-select: none !important;
+}
+
+/* Add animation effects */
+.kanban-column, .bookmark-item {
+  transition: transform 0.15s ease, box-shadow 0.15s ease !important;
+}
+
+/* Drag hint effect - indicates draggable */
+.kanban-column:hover .column-drag-handle,
+.bookmark-item:hover .bookmark-drag-handle {
+  background-color: rgba(226, 232, 240, 0.4);
+  border-radius: 3px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+  .column-drag-handle,
+  .bookmark-drag-handle {
+    padding: 6px;
+    font-size: 16px;
+  }
+}
+
+/* Ensure column header can be used as drag handle */
+.column-header {
+  cursor: move;
+  user-select: none;
+}

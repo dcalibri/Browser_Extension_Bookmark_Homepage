@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bookmark Kanban</title>
+  <link rel="stylesheet" href="css/modules/common.css">
+  <link rel="stylesheet" href="css/modules/drag.css">
+  <link rel="stylesheet" href="css/modules/modal.css">
+  <link rel="stylesheet" href="css/modules/commandPalette.css">
+  <link rel="stylesheet" href="css/newtab.css">
+  <link rel="stylesheet" href="css/themes.css">
+  <script src="lib/Sortable.min.js"></script>
+</head>
+<body>
+  <header>
+    <div id="event-label-badges" style="position: absolute; top: 18px; right: 32px; z-index: 1000; display: flex; gap: 8px;"></div>
+    <div class="header-left">
+      <h1>Bookmark Kanban</h1>
+    </div>
+    <div class="header-controls">
+      <div id="check-sites-button" class="header-button" title="Check bookmarks availability">
+        <span class="check-icon">🔍</span>
+        <span class="check-text">Check Sites</span>
+        <span class="check-progress" style="display: none;">0/0</span>
+      </div>
+      <div id="settings-button" class="header-button" title="Open settings">
+        <span class="settings-icon">⚙️</span>
+        <span class="settings-text">Settings</span>
+      </div>
+      <div id="gc-collect-button" class="header-button" title="Collect Google Classroom to-dos">
+        <span class="check-icon">📚</span>
+        <span class="check-text">GC Collect</span>
+      </div>
+      <div id="yt-clean-button" class="header-button" title="Close other YouTube tabs">
+        <span class="check-icon">🧹</span>
+        <span class="check-text">YT Clean</span>
+      </div>
+      <div id="current-time"></div>
+      <div id="current-date"></div>
+      <div class="world-clocks">
+        <div class="clock" id="clock-tokyo">
+          <span class="clock-label">Tokyo</span>
+          <span class="clock-time" id="tokyo-time"></span>
+          <span class="clock-date" id="tokyo-date"></span>
+        </div>
+        <div class="clock" id="clock-riyadh">
+          <span class="clock-label">Riyadh</span>
+          <span class="clock-time" id="riyadh-time"></span>
+          <span class="clock-date" id="riyadh-date"></span>
+        </div>
+        <div class="clock" id="clock-jakarta" onclick="window.open('https://www.google.com/search?q=jakarta+weather')">
+          <span class="clock-label">Jakarta</span>
+          <span class="clock-time" id="jakarta-time"></span>
+          <span class="clock-date" id="jakarta-date"></span>
+        </div>
+        <div class="clock" id="clock-surabaya" onclick="window.open('https://www.google.com/search?q=surabaya+weather')">
+          <span class="clock-label">Surabaya</span>
+          <span class="clock-time" id="surabaya-time"></span>
+          <span class="clock-date" id="surabaya-date"></span>
+        </div>
+        <div class="clock" id="clock-kalimantan" onclick="window.open('https://www.google.com/search?q=kalimantan+weather')">
+          <span class="clock-label">Kalimantan</span>
+          <span class="clock-time" id="kalimantan-time"></span>
+          <span class="clock-date" id="kalimantan-date"></span>
+        </div>
+      </div>
+    </div>
+  </header>
+  
+  <main id="kanban-container">
+    <!-- Kanban columns with collapsible folders/subfolders -->
+    <div class="kanban-board">
+      <div class="kanban-column">
+        <div class="kanban-header">Online Account <span class="kanban-count">🔒 13+</span></div>
+        <div class="kanban-list">
+          <div class="collapsible" onclick="toggleFolder(this)"><span class="chevron">▼</span> Main Folder</div>
+          <div class="folder-content">
+            <div class="bookmark-item">
+              <div class="bookmark-title">Develop vr app for you, i specialize...</div>
+              <div class="bookmark-url">www.fiverr.com</div>
+            </div>
+            <div class="collapsible" onclick="toggleFolder(this)"><span class="chevron">▼</span> Subfolder</div>
+            <div class="subfolder-content">
+              <div class="bookmark-item">
+                <div class="bookmark-title">Telegram Web</div>
+                <div class="bookmark-url">web.telegram.org</div>
+              </div>
+              <div class="collapsible" onclick="toggleFolder(this)"><span class="chevron">▼</span> Sub-Subfolder</div>
+              <div class="subsubfolder-content">
+                <div class="bookmark-item">
+                  <div class="bookmark-title">Discord</div>
+                  <div class="bookmark-url">discord.com</div>
+                </div>
+                <div class="bookmark-item">
+                  <div class="bookmark-title">WhatsApp</div>
+                  <div class="bookmark-url">web.whatsapp.com</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="kanban-column">
+        <div class="kanban-header">To <span class="kanban-count">45+</span></div>
+        <div class="kanban-list">
+          <div class="collapsible" onclick="toggleFolder(this)"><span class="chevron">▼</span> Main Folder</div>
+          <div class="folder-content">
+            <div class="bookmark-item">
+              <div class="bookmark-title">Dasar OSI Layer & IP Address - ITB...</div>
+              <div class="bookmark-url">itbox.id</div>
+            </div>
+            <div class="bookmark-item">
+              <div class="bookmark-title">IDEAS</div>
+              <div class="bookmark-url">docs.google.com</div>
+            </div>
+            <div class="collapsible" onclick="toggleFolder(this)"><span class="chevron">▼</span> Subfolder</div>
+            <div class="subfolder-content">
+              <div class="bookmark-item">
+                <div class="bookmark-title">Notion</div>
+                <div class="bookmark-url">notion.so</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  <script>
+    // Collapsible logic for folders/subfolders
+    function toggleFolder(header) {
+      let content = header.nextElementSibling;
+      while (content && !content.classList.contains('folder-content') && !content.classList.contains('subfolder-content') && !content.classList.contains('subsubfolder-content')) {
+        content = content.nextElementSibling;
+      }
+      if (!content) return;
+      const chevron = header.querySelector('.chevron');
+      if (content.style.display === 'none') {
+        content.style.display = 'block';
+        if (chevron) chevron.textContent = '▼';
+      } else {
+        content.style.display = 'none';
+        if (chevron) chevron.textContent = '▶';
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      // Initialize all folder contents as visible
+      document.querySelectorAll('.folder-content, .subfolder-content, .subsubfolder-content').forEach(el => {
+        el.style.display = 'block';
+      });
+      // Set all chevrons to down
+      document.querySelectorAll('.chevron').forEach(icon => {
+        icon.textContent = '▼';
+      });
+
+      // Enable drag-and-drop for each bookmark list and folder/subfolder using SortableJS
+      const lists = document.querySelectorAll('.kanban-list, .folder-content, .subfolder-content, .subsubfolder-content');
+      lists.forEach(list => {
+        Sortable.create(list, {
+          group: 'kanban',
+          animation: 150,
+          draggable: '.bookmark-item',
+          ghostClass: 'sortable-ghost',
+        });
+      });
+
+      // --- Event Label Badge Logic ---
+      const KEYWORDS = [
+        { label: '🥊 UFC', keyword: 'UFC' },
+        { label: '📑 SIDANG', keyword: 'SIDANG' },
+        { label: '🏢 MAGANG', keyword: 'MAGANG' }
+      ];
+      function scanForEventLabels() {
+        // Scan all bookmark/event titles for keywords
+        const allTitles = Array.from(document.querySelectorAll('.bookmark-title')).map(e => e.textContent.toUpperCase());
+        const foundLabels = KEYWORDS.filter(k => allTitles.some(t => t.includes(k.keyword)));
+        const badgeContainer = document.getElementById('event-label-badges');
+        badgeContainer.innerHTML = '';
+        foundLabels.forEach(({ label }) => {
+          const badge = document.createElement('span');
+          badge.textContent = label;
+          badge.className = 'event-label-badge';
+          badgeContainer.appendChild(badge);
+        });
+        badgeContainer.style.display = foundLabels.length ? 'flex' : 'none';
+      }
+      scanForEventLabels();
+      // If bookmarks/events are dynamic, call scanForEventLabels() after update
+    });
+  </script>
+  <style>
+    .event-label-badge {
+      background: #e53935;
+      color: #fff;
+      font-weight: 600;
+      border-radius: 16px;
+      padding: 4px 12px;
+      font-size: 1em;
+      margin-left: 4px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      letter-spacing: 0.5px;
+      display: inline-block;
+      vertical-align: middle;
+      animation: badgeFadeIn 0.3s;
+    }
+    @keyframes badgeFadeIn {
+      from { opacity: 0; transform: translateY(-8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    body {
+      background: #f6f8fa;
+      font-family: 'Inter', Arial, sans-serif;
+    }
+    .kanban-board {
+      display: flex;
+      gap: 24px;
+      padding: 32px 0;
+      justify-content: center;
+      align-items: flex-start;
+    }
+    .kanban-column {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+      width: 320px;
+      min-width: 260px;
+      max-width: 340px;
+      display: flex;
+      flex-direction: column;
+      padding: 18px 14px 14px 14px;
+      height: 600px;
+    }
+    .kanban-header {
+      font-size: 1.25em;
+      font-weight: 600;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .kanban-count {
+      font-size: 0.95em;
+      color: #888;
+      margin-left: auto;
+    }
+    .kanban-list {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding-right: 4px;
+    }
+    .bookmark-item {
+      background: #f8faff;
+      border: 1px solid #e3e8f0;
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: 1em;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+      cursor: grab;
+      transition: box-shadow 0.2s;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .bookmark-title {
+      font-weight: 500;
+      color: #222;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .bookmark-url {
+      font-size: 0.95em;
+      color: #4a7bb7;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .sortable-ghost {
+      opacity: 0.5;
+      background: #e0f7ff;
+    }
+    /* Custom scrollbar */
+    .kanban-list::-webkit-scrollbar {
+      width: 8px;
+      background: #f6f8fa;
+      border-radius: 8px;
+    }
+    .kanban-list::-webkit-scrollbar-thumb {
+      background: #e3e8f0;
+      border-radius: 8px;
+    }
+  </style>
+  <style>
+    .collapsible {
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      font-weight: 500;
+      padding: 8px 12px;
+      background: #fff;
+      border-radius: 6px;
+      margin-bottom: 6px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+    }
+    .chevron {
+      font-size: 1.1em;
+      margin-right: 8px;
+      transition: transform 0.2s;
+    }
+    .folder-title {
+      font-size: 1em;
+    }
+    .bookmark-item {
+      background: #f8fff8;
+      border: 1px solid #b2e6b2;
+      border-radius: 6px;
+      margin: 6px 0;
+      padding: 10px 16px;
+      font-size: 1em;
+      cursor: grab;
+      transition: box-shadow 0.2s;
+    }
+    .sortable-ghost {
+      opacity: 0.5;
+      background: #e0ffe0;
+    }
+    .folder-content, .subfolder-content, .subsubfolder-content {
+      margin-left: 16px;
+      margin-bottom: 8px;
+    }
+  </style>
+  </main>
+
+  <!-- Edit Modal -->
+  <div id="editModal" class="modal">
+    <div class="modal-content">
+      <h2>Edit Bookmark</h2>
+      <form id="editBookmarkForm">
+        <div class="form-group">
+          <label for="bookmarkTitle">Title</label>
+          <input type="text" id="bookmarkTitle" required>
+        </div>
+        <div class="form-group">
+          <label for="bookmarkUrl">URL</label>
+          <input type="url" id="bookmarkUrl" required>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn-cancel" onclick="closeEditModal()">Cancel</button>
+          <button type="submit" class="btn-save">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Confirm Delete Modal -->
+  <div id="confirmModal" class="modal">
+    <div class="modal-content confirm-content">
+      <h2>Delete Bookmark</h2>
+      <p class="confirm-message">Are you sure you want to delete "<span id="bookmarkTitle"></span>"?</p>
+      <div class="form-actions">
+        <button type="button" class="btn-cancel" id="cancelDelete">Cancel</button>
+        <button type="button" class="btn-delete" id="confirmDelete">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Modal (New) -->
+  <div id="settingsModal" class="modal">
+    <div class="modal-content settings-content">
+      <h2>Settings</h2>
+      <div class="settings-container">
+        <div class="settings-group">
+          <h3>Appearance</h3>
+          <div class="form-group">
+            <label for="theme-selector">Theme</label>
+            <select id="theme-selector" class="theme-selector">
+              <option value="default">Default (Light Blue)</option>
+              <option value="dark">Dark</option>
+              <option value="green">Green</option>
+              <option value="purple">Purple</option>
+              <option value="high-contrast">High Contrast</option>
+            </select>
+          </div>
+          <div class="form-group">g code... -->
+            <label for="display-mode-selector">Display Mode</label>k" id="clock-jakarta" onclick="window.open('https://www.google.com/search?q=jakarta+weather')">
+            <select id="display-mode-selector" class="display-mode-selector"> ... -->
+              <option value="double">Double Line</option>
+              <option value="single">Single Line</option>
+            </select>
+          </div>
+        </div>
+        <div class="settings-group">nitial-scale=1.0">
+          <h3>Data Management</h3>
+          <div class="form-group">on.css">
+            <button id="refresh-bookmarks" class="btn-secondary">Refresh Bookmarks</button>.css">
+          </div>dal.css">
+          <div class="form-group"> rel="stylesheet" href="css/modules/commandPalette.css">
+            <button id="reset-layout" class="btn-warning">Reset Board Layout</button>k rel="stylesheet" href="css/newtab.css">
+          </div>l="stylesheet" href="css/themes.css">
+        </div>in.js"></script>
+        <div class="settings-group">
+          <h3>Region Clocks</h3>
+          <div class="form-group">
+            <label for="region-clock-selector">Select Region Clock</label>
+            <select id="region-clock-selector">
+              <option value="jakarta">Jakarta</option>
+              <option value="surabaya">Surabaya</option>
+              <option value="kalimantan">Kalimantan</option>d="check-sites-button" class="header-button" title="Check bookmarks availability">
+              <option value="tokyo">Tokyo</option>
+              <option value="riyadh">Riyadh</option>/span>
+            </select>: none;">0/0</span>
+          </div>
+        </div>
+      </div>an>
+      <div class="form-actions">>
+        <button type="button" class="btn-primary" id="closeSettings">Close</button>
+      </div> to-dos">
+    </div>
+  </div>n>
+
+  <script type="module" src="js/newtab.js"></script>ss="header-button" title="Close other YouTube tabs">
+  <script src="js/yt-clean-wire.js"></script></span>
+</body>>YT Clean</span>
+</html>  <script type="module" src="js/newtab.js"></script>
+  <script src="js/yt-clean-wire.js"></script>
+</body>
+</html>

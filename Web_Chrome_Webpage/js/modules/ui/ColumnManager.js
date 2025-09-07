@@ -25,35 +25,113 @@ export class ColumnManager {
     const column = createElement('div', 'kanban-column');
     column.dataset.columnType = 'folder';
     column.dataset.folderId = folder.id;
-    
-    // Create header
+    // Column folder icon
+    const folderIcon = document.createElement('span');
+    folderIcon.className = 'column-folder-icon';
+    folderIcon.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h3.5a2 2 0 0 1 1.6.8l1.7 2.4H19a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg>';
+    // Or use emoji: folderIcon.textContent = '📂';
+    // Insert icon before header
     const header = this.createColumnHeader(folder.title, this.countBookmarksInFolder(folder));
+    header.insertBefore(folderIcon, header.firstChild);
     column.appendChild(header);
-    
     // Add double-click event handling for title editing
     this.setupTitleEditHandling(header, column);
-    
-    // Create bookmark list
-    const bookmarkList = createElement('div', 'bookmark-list');
-    
+    // Create a sortable container for all items in Chrome order
+    const itemList = createElement('div', 'folder-item-list');
+    itemList.classList.add('sortable-folder-list');
     if (folder.children) {
-      // Check if there's saved bookmark order
-      if (savedBookmarkOrder && savedBookmarkOrder[folder.id]) {
-        // Arrange bookmarks according to saved order
-        this.renderOrderedBookmarks(folder.children, bookmarkList, savedBookmarkOrder[folder.id]);
-      } else {
-        // Render bookmarks in original order
-        folder.children.forEach(child => {
-          if (child.url) {
-            const bookmarkItem = this.bookmarkRenderer.createBookmarkItem(child);
-            bookmarkList.appendChild(bookmarkItem);
-          }
-        });
-      }
+      folder.children.forEach(child => {
+        if (child.url) {
+          // Direct bookmark: show as Kanban card, draggable
+          const bookmarkItem = this.bookmarkRenderer.createBookmarkItem(child);
+          bookmarkItem.classList.add('sortable-item');
+          itemList.appendChild(bookmarkItem);
+        } else if (child.children) {
+          // Subfolder: show as collapsible group, keep position
+          const subfolderContainer = document.createElement('div');
+          subfolderContainer.className = 'subfolder-container sortable-item';
+          subfolderContainer.setAttribute('data-folder-id', child.id);
+          this.renderSubfolderGroup(child, subfolderContainer, savedBookmarkOrder);
+          itemList.appendChild(subfolderContainer);
+        }
+      });
     }
-    
-    column.appendChild(bookmarkList);
+    column.appendChild(itemList);
     container.appendChild(column);
+    // Initialize drag-and-drop for both bookmarks and subfolders, across columns and into subfolders
+    if (window.Sortable) {
+      Sortable.create(itemList, {
+        animation: 150,
+        group: 'folder-items',
+        draggable: '.sortable-item',
+        handle: '.bookmark-item, .subfolder-header',
+        onStart: (evt) => {
+          console.log('[DragStart]', evt);
+        },
+        onEnd: async (evt) => {
+          const draggedEl = evt.item;
+          const bookmarkId = draggedEl.classList.contains('bookmark-item') ? draggedEl.getAttribute('data-bookmark-id') : null;
+          if (!bookmarkId) return;
+          // Determine drop target
+          let targetParentId = column.dataset.folderId;
+          let targetIndex = evt.newIndex;
+          let dropType = 'column-root';
+          let dropTargetName = header.querySelector('.column-title')?.textContent || '';
+          // Drop on subfolder header
+          const nextEl = itemList.children[targetIndex];
+          if (nextEl && nextEl.classList.contains('subfolder-container')) {
+            targetParentId = nextEl.getAttribute('data-folder-id');
+            targetIndex = 0;
+            dropType = 'subfolder-header';
+            dropTargetName = nextEl.querySelector('.subfolder-title')?.textContent || '';
+          } else if (nextEl && nextEl.classList.contains('bookmark-item')) {
+            // Drop between items
+            targetParentId = nextEl.parentNode.classList.contains('subfolder-content')
+              ? nextEl.parentNode.parentNode.querySelector('.subfolder-header').getAttribute('data-folder-id')
+              : column.dataset.folderId;
+            dropType = 'between-items';
+            dropTargetName = nextEl.querySelector('.bookmark-title')?.textContent || '';
+          }
+          // Prevent self-drop
+          if (bookmarkId === targetParentId) {
+            this.notificationService.showToast('Cannot drop on itself', 'info');
+            return;
+          }
+          // Get source info
+          const sourceParentId = draggedEl.parentNode.classList.contains('subfolder-content')
+            ? draggedEl.parentNode.parentNode.querySelector('.subfolder-header').getAttribute('data-folder-id')
+            : column.dataset.folderId;
+          const sourceIndex = Array.from(draggedEl.parentNode.children).indexOf(draggedEl);
+          // No-op if unchanged
+          if (sourceParentId === targetParentId && sourceIndex === targetIndex) {
+            this.notificationService.showToast('No change in position', 'info');
+            return;
+          }
+          // Logging
+          console.log('[DropTarget]', {bookmarkId, sourceParentId, targetParentId, targetIndex, dropType, dropTargetName});
+          // Move via Chrome API
+          try {
+            await chrome.bookmarks.move(bookmarkId, { parentId: targetParentId, index: targetIndex });
+            this.notificationService.showToast(`Moved to "${dropTargetName}"`, 'success');
+            // Update cached order arrays (chrome.storage.sync)
+            // ...existing code for updating order arrays...
+          } catch (err) {
+            const errorMsg = chrome.runtime?.lastError?.message || err?.message || 'Move failed';
+            this.notificationService.showToast(errorMsg, 'error');
+            // Roll back DOM (optional: re-fetch container)
+            // ...existing code for rollback...
+            console.error('[MoveError]', errorMsg);
+          }
+        }
+      });
+    }
+    // Helper to check descendant
+    function isDescendant(folderId, targetId) {
+      if (folderId === targetId) return true;
+      // Traverse Chrome bookmarks tree if needed
+      // For now, block only direct self-move
+      return false;
+    }
   }
   
   /**
@@ -338,33 +416,116 @@ export class ColumnManager {
    * @param {Object} savedBookmarkOrder Saved bookmark order
    */
   renderSubfolderGroup(folder, container, savedBookmarkOrder) {
-    // Render even if empty to show the subfolder placeholder
-    
+    // Subfolder group
     const subfolderGroup = createElement('div', 'subfolder-group');
-    
+    // Subfolder header with toggle
+    const subfolderHeader = createElement('div', 'subfolder-header');
+    subfolderHeader.setAttribute('data-folder-id', folder.id);
+    // Folder icon (SVG or emoji)
+    const folderIcon = document.createElement('span');
+    folderIcon.className = 'subfolder-folder-icon';
+    folderIcon.textContent = '📁';
+    subfolderHeader.appendChild(folderIcon);
+    const subfolderToggle = createElement('button', 'subfolder-toggle-btn');
+    subfolderToggle.textContent = '▼';
+    subfolderToggle.title = 'Expand/Collapse';
     const subfolderTitle = createElement('div', 'subfolder-title');
     subfolderTitle.textContent = folder.title;
-    subfolderGroup.appendChild(subfolderTitle);
-    
-    // If there's saved subfolder bookmark order, render in order
+    subfolderHeader.appendChild(subfolderToggle);
+    subfolderHeader.appendChild(subfolderTitle);
+    subfolderGroup.appendChild(subfolderHeader);
+    // Double-click to rename subfolder
+    subfolderTitle.addEventListener('dblclick', async (e) => {
+      e.stopPropagation();
+      const originalTitle = subfolderTitle.textContent;
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.value = originalTitle;
+      input.className = 'subfolder-title-edit';
+      input.style.width = '80%';
+      subfolderTitle.style.display = 'none';
+      subfolderHeader.appendChild(input);
+      input.focus();
+      input.select();
+      input.addEventListener('keydown', async (ev) => {
+        if (ev.key === 'Enter') {
+          const newTitle = input.value.trim();
+          if (newTitle && newTitle !== originalTitle) {
+            try {
+              await chrome.bookmarks.update(folder.id, { title: newTitle });
+              subfolderTitle.textContent = newTitle;
+            } catch (err) {
+              alert('Failed to rename subfolder');
+            }
+          }
+          input.remove();
+          subfolderTitle.style.display = '';
+        } else if (ev.key === 'Escape') {
+          input.remove();
+          subfolderTitle.style.display = '';
+        }
+      });
+      input.addEventListener('blur', () => {
+        input.remove();
+        subfolderTitle.style.display = '';
+      });
+    });
+    // Subfolder content container
+    const subfolderContent = createElement('div', 'subfolder-content');
     const subfolderKey = `subfolder-${folder.id}`;
     if (savedBookmarkOrder && savedBookmarkOrder[subfolderKey]) {
-      this.renderOrderedBookmarks(folder.children, subfolderGroup, savedBookmarkOrder[subfolderKey]);
+      this.renderOrderedBookmarks(folder.children, subfolderContent, savedBookmarkOrder[subfolderKey]);
     } else if (folder.children && folder.children.length) {
-      // Render bookmarks in subfolder in original order
       folder.children.forEach(child => {
         if (child.url) {
           const bookmarkItem = this.bookmarkRenderer.createBookmarkItem(child);
-          subfolderGroup.appendChild(bookmarkItem);
+          subfolderContent.appendChild(bookmarkItem);
         }
       });
     } else {
       const empty = createElement('div', 'subfolder-empty');
       empty.textContent = '(Empty)';
-      subfolderGroup.appendChild(empty);
+      subfolderContent.appendChild(empty);
     }
-    
+    subfolderGroup.appendChild(subfolderContent);
     container.appendChild(subfolderGroup);
+    // Toggle logic for subfolder
+    subfolderToggle.addEventListener('click', () => {
+      if (subfolderContent.style.display === 'none') {
+        subfolderContent.style.display = '';
+        subfolderToggle.textContent = '▼';
+      } else {
+        subfolderContent.style.display = 'none';
+        subfolderToggle.textContent = '►';
+      }
+    });
+    // Make bookmarks inside subfolder sortable and allow cross-subfolder drag
+    if (window.Sortable) {
+      Sortable.create(subfolderContent, {
+        animation: 150,
+        group: 'folder-items', // Allow cross-subfolder drag
+        draggable: '.bookmark-item',
+        onEnd: async (evt) => {
+          const draggedEl = evt.item;
+          const parentFolderId = folder.id;
+          const newIndex = evt.newIndex;
+          const id = draggedEl.getAttribute('data-bookmark-id');
+          // Prevent redundant move
+          const currentParentId = draggedEl.parentNode.parentNode.querySelector('.subfolder-header').getAttribute('data-folder-id');
+          const currentIndex = Array.from(draggedEl.parentNode.children).indexOf(draggedEl);
+          if (currentParentId === parentFolderId && currentIndex === newIndex) {
+            this.notificationService.showToast('No change in position', 'info');
+            return;
+          }
+          try {
+            await chrome.bookmarks.move(id, { parentId: parentFolderId, index: newIndex });
+            this.notificationService.showToast('Moved successfully', 'success');
+          } catch (err) {
+            this.notificationService.showToast('Move failed', 'error');
+          }
+        }
+      });
+    }
   }
   
   /**
@@ -398,4 +559,5 @@ export class ColumnManager {
       count.textContent = bookmarkList.children.length;
     }
   }
-} 
+}
+

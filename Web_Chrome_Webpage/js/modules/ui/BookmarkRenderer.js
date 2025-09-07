@@ -24,25 +24,26 @@ export class BookmarkRenderer {
     const item = createElement('div', 'bookmark-item');
     item.setAttribute('data-bookmark-id', bookmark.id);
     item.setAttribute('draggable', 'true');
-    
-    // Add URL as data attribute for single-line mode tooltip
     item.setAttribute('data-url', bookmark.url);
-    
     const content = createElement('div', 'bookmark-content');
-    
-    // Create favicon container
-    const faviconContainer = createElement('div', 'bookmark-favicon');
-    
-    // Create title element
+    // Favicon using Chrome's built-in service
+    const favicon = document.createElement('img');
+    favicon.className = 'bookmark-favicon';
+    favicon.src = `chrome://favicon/${bookmark.url}`;
+    favicon.onerror = function() {
+      favicon.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><text x="0" y="14" font-size="16">🌐</text></svg>';
+    };
+    content.appendChild(favicon);
+    // Title
     const title = createElement('div', 'bookmark-title');
     title.textContent = bookmark.title || '(Untitled)';
     title.title = bookmark.title || bookmark.url;
-    
-    // Create domain element
+    content.appendChild(title);
+    // Domain
     const domain = createElement('div', 'bookmark-domain');
     domain.textContent = getDomain(bookmark.url);
-    
-    // Create actions container
+    content.appendChild(domain);
+    // Actions
     const actions = createElement('div', 'bookmark-actions');
     
     // Create edit button
@@ -68,7 +69,7 @@ export class BookmarkRenderer {
     actions.appendChild(deleteButton);
     
     // Assemble content
-    content.appendChild(faviconContainer);
+    content.appendChild(favicon);
     content.appendChild(title);
     content.appendChild(domain);
     
@@ -82,9 +83,6 @@ export class BookmarkRenderer {
         window.open(bookmark.url, '_blank');
       }
     });
-    
-    // Load favicon
-    faviconLoader.prepareIconElement(faviconContainer, bookmark.url);
     
     return item;
   }
@@ -147,4 +145,49 @@ export class BookmarkRenderer {
     empty.textContent = 'This folder is empty';
     return empty;
   }
-} 
+  
+  /**
+   * Render subfolder group
+   * @param {Object} folder Folder data
+   * @param {HTMLElement} container Container element
+   * @param {Array} savedBookmarkOrder Saved bookmark order
+   */
+  renderSubfolderGroup(folder, container, savedBookmarkOrder) {
+    // Subfolder group
+    const subfolderGroup = createElement('div', 'subfolder-group');
+    // Subfolder header with toggle
+    const subfolderHeader = createElement('div', 'subfolder-header');
+    subfolderHeader.setAttribute('data-folder-id', folder.id);
+    // Folder icon (SVG)
+    const folderIcon = document.createElement('span');
+    folderIcon.className = 'subfolder-folder-icon';
+    folderIcon.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h3.5a2 2 0 0 1 1.6.8l1.7 2.4H19a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg>';
+    subfolderHeader.appendChild(folderIcon);
+    const subfolderToggle = createElement('button', 'subfolder-toggle-btn');
+    subfolderToggle.textContent = '▼';
+    subfolderToggle.title = 'Expand/Collapse';
+    const subfolderTitle = createElement('div', 'subfolder-title');
+    subfolderTitle.textContent = folder.title;
+    subfolderHeader.appendChild(subfolderToggle);
+    subfolderHeader.appendChild(subfolderTitle);
+    subfolderGroup.appendChild(subfolderHeader);
+    // Bookmarks container
+    const bookmarksContainer = createElement('div', 'bookmarks-container');
+    // Render bookmarks in folder
+    folder.bookmarks.forEach(bookmarkId => {
+      const bookmark = this.bookmarks[bookmarkId];
+      if (bookmark) {
+        const bookmarkItem = this.createBookmarkItem(bookmark);
+        bookmarksContainer.appendChild(bookmarkItem);
+      }
+    });
+    subfolderGroup.appendChild(bookmarksContainer);
+    container.appendChild(subfolderGroup);
+    
+    // Toggle subfolder visibility
+    subfolderToggle.addEventListener('click', () => {
+      const isOpen = subfolderGroup.classList.toggle('open');
+      subfolderToggle.textContent = isOpen ? '▲' : '▼';
+    });
+  }
+}

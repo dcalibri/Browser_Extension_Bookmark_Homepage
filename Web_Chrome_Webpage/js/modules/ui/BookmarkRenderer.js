@@ -1,10 +1,18 @@
 import { createElement, getDomain } from '../utils.js';
-import { faviconLoader } from '../faviconLoader.js';
+
+/* ---------- Helpers ---------- */
+function chromeFavicon(url, size = 16, dpr = window.devicePixelRatio || 1) {
+  // Chrome supports high-DPI variants with @2x
+  const scale = dpr >= 1.5 ? '@2x' : '';
+  return `chrome://favicon/size/${size}${scale}/${url}`;
+}
 
 export class BookmarkRenderer {
   constructor() {
     // Callbacks from outer components
     this.onBookmarkOrderChanged = null;
+    // Optional: if you maintain an in-memory map { [id]: bookmark }
+    // this.bookmarks = {};
   }
   
   /**
@@ -25,28 +33,46 @@ export class BookmarkRenderer {
     item.setAttribute('data-bookmark-id', bookmark.id);
     item.setAttribute('draggable', 'true');
     item.setAttribute('data-url', bookmark.url);
+
     const content = createElement('div', 'bookmark-content');
-    // Favicon using Chrome's built-in service
+
+    // --- Favicon from the site via Chrome's built-in service ---
     const favicon = document.createElement('img');
     favicon.className = 'bookmark-favicon';
-    favicon.src = `chrome://favicon/${bookmark.url}`;
-    favicon.onerror = function() {
-      favicon.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><text x="0" y="14" font-size="16">🌐</text></svg>';
+    favicon.loading = 'lazy';
+    favicon.alt = '';
+    favicon.src = chromeFavicon(bookmark.url, 16);
+
+    // Fallback: try the origin once, then tiny globe
+    favicon.onerror = () => {
+      favicon.onerror = () => {
+        favicon.onerror = null;
+        favicon.src =
+          'data:image/svg+xml;utf8,' +
+          encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><text x="0" y="14" font-size="16">🌐</text></svg>');
+      };
+      try {
+        const origin = new URL(bookmark.url).origin;
+        favicon.src = chromeFavicon(origin, 16);
+      } catch {
+        favicon.onerror();
+      }
     };
-    content.appendChild(favicon);
+
+
     // Title
     const title = createElement('div', 'bookmark-title');
     title.textContent = bookmark.title || '(Untitled)';
     title.title = bookmark.title || bookmark.url;
-    content.appendChild(title);
+
     // Domain
     const domain = createElement('div', 'bookmark-domain');
     domain.textContent = getDomain(bookmark.url);
-    content.appendChild(domain);
+
     // Actions
     const actions = createElement('div', 'bookmark-actions');
-    
-    // Create edit button
+
+    // Edit
     const editButton = createElement('button', 'bookmark-action edit-btn');
     editButton.innerHTML = `
       <svg width="14" height="14" viewBox="0 0 24 24">
@@ -54,8 +80,8 @@ export class BookmarkRenderer {
       </svg>
     `;
     editButton.title = 'Edit';
-    
-    // Create delete button
+
+    // Delete
     const deleteButton = createElement('button', 'bookmark-action delete-btn');
     deleteButton.innerHTML = `
       <svg width="14" height="14" viewBox="0 0 24 24">
@@ -63,27 +89,24 @@ export class BookmarkRenderer {
       </svg>
     `;
     deleteButton.title = 'Delete';
-    
-    // Assemble actions
+
     actions.appendChild(editButton);
     actions.appendChild(deleteButton);
-    
-    // Assemble content
+
+    // Assemble (no double-append)
     content.appendChild(favicon);
     content.appendChild(title);
     content.appendChild(domain);
-    
-    // Assemble item
     item.appendChild(content);
     item.appendChild(actions);
-    
-    // Add click handler to open bookmark
+
+    // Open on click (unless action button)
     item.addEventListener('click', (e) => {
       if (!e.target.closest('.bookmark-action')) {
         window.open(bookmark.url, '_blank');
       }
     });
-    
+
     return item;
   }
   
@@ -93,14 +116,32 @@ export class BookmarkRenderer {
    */
   updateBookmarkItem(bookmark) {
     const item = document.querySelector(`.bookmark-item[data-bookmark-id="${bookmark.id}"]`);
-    if (item) {
-      const title = item.querySelector('.bookmark-title');
-      const favicon = item.querySelector('.bookmark-favicon');
-      
-      title.textContent = bookmark.title || getDomain(bookmark.url);
-      faviconLoader.prepareIconElement(favicon, bookmark.url);
-      item.dataset.url = bookmark.url;
-    }
+    if (!item) return;
+
+    const title = item.querySelector('.bookmark-title');
+    const favicon = item.querySelector('.bookmark-favicon');
+
+    title.textContent = bookmark.title || getDomain(bookmark.url);
+    item.dataset.url = bookmark.url;
+
+    // Re-resolve favicon from Chrome (add cache-buster so Chrome refetches if needed)
+    favicon.onerror = () => {
+      favicon.onerror = () => {
+        favicon.onerror = null;
+        favicon.src =
+          'data:image/svg+xml;utf8,' +
+          encodeURIComponent(
+            '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><text x="0" y="14" font-size="16">🌐</text></svg>'
+          );
+      };
+      try {
+        const origin = new URL(bookmark.url).origin;
+        favicon.src = chromeFavicon(origin, 16) + `#${Date.now()}`;
+      } catch {
+        favicon.onerror();
+      }
+    };
+    favicon.src = chromeFavicon(bookmark.url, 16) + `#${Date.now()}`;
   }
   
   /**
@@ -109,31 +150,33 @@ export class BookmarkRenderer {
    */
   removeBookmarkItem(bookmarkId) {
     const bookmarkItem = document.querySelector(`.bookmark-item[data-bookmark-id="${bookmarkId}"]`);
-    if (bookmarkItem) {
-      bookmarkItem.style.transition = 'opacity 0.3s ease';
-      bookmarkItem.style.opacity = '0';
+    if (!bookmarkItem) return;
+
+    bookmarkItem.style.transition = 'opacity 0.3s ease';
+    bookmarkItem.style.opacity = '0';
+    
+    setTimeout(() => {
+      bookmarkItem.remove();
       
-      setTimeout(() => {
-        bookmarkItem.remove();
-        
-        const column = bookmarkItem.closest('.kanban-column');
-        if (column) {
-          const count = column.querySelector('.column-count');
-          const currentCount = parseInt(count.textContent) - 1;
-          count.textContent = currentCount;
-          
-          const bookmarkList = column.querySelector('.bookmark-list');
-          if (bookmarkList && bookmarkList.children.length === 0) {
-            bookmarkList.innerHTML = '<div class="empty-column">No bookmarks</div>';
-          }
+      const column = bookmarkItem.closest('.kanban-column');
+      if (column) {
+        const countEl = column.querySelector('.column-count');
+        if (countEl) {
+          const currentCount = Math.max(0, (parseInt(countEl.textContent, 10) || 1) - 1);
+          countEl.textContent = currentCount;
         }
-        
-        // Notify about order change
-        if (this.onBookmarkOrderChanged) {
-          this.onBookmarkOrderChanged();
+
+        const bookmarkList = column.querySelector('.bookmark-list');
+        if (bookmarkList && bookmarkList.children.length === 0) {
+          bookmarkList.innerHTML = '<div class="empty-column">No bookmarks</div>';
         }
-      }, 300);
-    }
+      }
+      
+      // Notify about order change
+      if (this.onBookmarkOrderChanged) {
+        this.onBookmarkOrderChanged();
+      }
+    }, 300);
   }
   
   /**
@@ -153,34 +196,33 @@ export class BookmarkRenderer {
    * @param {Array} savedBookmarkOrder Saved bookmark order
    */
   renderSubfolderGroup(folder, container, savedBookmarkOrder) {
-    // Subfolder group
     const subfolderGroup = createElement('div', 'subfolder-group');
+
     // Subfolder header with toggle
-    const subfolderHeader = createElement('div', 'subfolder-header');
+    const subfolderHeader = this.createSubfolderHeader(folder);
     subfolderHeader.setAttribute('data-folder-id', folder.id);
-    // Folder icon (SVG)
-    const folderIcon = document.createElement('span');
-    folderIcon.className = 'subfolder-folder-icon';
-    folderIcon.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h3.5a2 2 0 0 1 1.6.8l1.7 2.4H19a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg>';
-    subfolderHeader.appendChild(folderIcon);
+
     const subfolderToggle = createElement('button', 'subfolder-toggle-btn');
     subfolderToggle.textContent = '▼';
     subfolderToggle.title = 'Expand/Collapse';
-    const subfolderTitle = createElement('div', 'subfolder-title');
-    subfolderTitle.textContent = folder.title;
     subfolderHeader.appendChild(subfolderToggle);
-    subfolderHeader.appendChild(subfolderTitle);
+
     subfolderGroup.appendChild(subfolderHeader);
+
     // Bookmarks container
     const bookmarksContainer = createElement('div', 'bookmarks-container');
-    // Render bookmarks in folder
-    folder.bookmarks.forEach(bookmarkId => {
-      const bookmark = this.bookmarks[bookmarkId];
-      if (bookmark) {
-        const bookmarkItem = this.createBookmarkItem(bookmark);
-        bookmarksContainer.appendChild(bookmarkItem);
-      }
-    });
+
+    // Render bookmarks in folder (assumes this.bookmarks map exists upstream)
+    if (Array.isArray(folder.bookmarks)) {
+      folder.bookmarks.forEach(bookmarkId => {
+        const bookmark = this.bookmarks?.[bookmarkId];
+        if (bookmark) {
+          const bookmarkItem = this.createBookmarkItem(bookmark);
+          bookmarksContainer.appendChild(bookmarkItem);
+        }
+      });
+    }
+
     subfolderGroup.appendChild(bookmarksContainer);
     container.appendChild(subfolderGroup);
     
@@ -189,5 +231,35 @@ export class BookmarkRenderer {
       const isOpen = subfolderGroup.classList.toggle('open');
       subfolderToggle.textContent = isOpen ? '▲' : '▼';
     });
+  }
+  
+  /**
+   * Create subfolder header with folder icon (with larger margins)
+   * @param {Object} folder Subfolder data
+   * @returns {HTMLElement} Subfolder header element
+   */
+  createSubfolderHeader(folder) {
+    const subfolderHeader = createElement('div', 'subfolder-header');
+    subfolderHeader.setAttribute('data-folder-id', folder.id);
+
+    // Larger margin: top right bottom left
+    subfolderHeader.style.margin = '8px 0 8px 12px';
+    subfolderHeader.style.display = 'flex';
+    subfolderHeader.style.alignItems = 'center';
+
+    // Folder icon (SVG)
+    const folderIcon = document.createElement('span');
+    folderIcon.className = 'subfolder-folder-icon';
+    folderIcon.style.marginRight = '8px'; // spacing between icon & title
+    folderIcon.innerHTML = `
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" 
+        stroke="currentColor" stroke-width="2" stroke-linecap="round" 
+        stroke-linejoin="round">
+        <path d="M3 7V5a2 2 0 0 1 2-2h3.5a2 2 0 0 1 1.6.8l1.7 2.4H19a2 2 0 0 1 
+          2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/>
+      </svg>
+    `;
+    subfolderHeader.appendChild(folderIcon);
+    return subfolderHeader;
   }
 }

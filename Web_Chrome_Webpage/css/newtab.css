@@ -1198,6 +1198,110 @@ main {
   box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
 }
 
+/* Subfolder Styles */
+.subfolder-container {
+  background: var(--card-bg);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-light);
+  margin-bottom: 1rem;
+  padding: 0.5rem 0.5rem 0.5rem 0.5rem;
+  transition: var(--transition);
+}
+
+.subfolder-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.2rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  background: var(--bg-light);
+  border-radius: var(--border-radius) var(--border-radius) 0 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.subfolder-toggle-btn {
+  background: none;
+  border: none;
+  color: var(--primary-color);
+  font-size: 1.1rem;
+  cursor: pointer;
+  margin-right: 0.3rem;
+  transition: color 0.2s;
+}
+.subfolder-toggle-btn:hover {
+  color: var(--primary-dark);
+}
+
+.subfolder-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  flex-grow: 1;
+}
+
+.subfolder-content {
+  padding: 0.5rem 0.2rem;
+}
+
+.subfolder-empty {
+  padding: 1rem;
+  text-align: center;
+  color: var(--secondary-color);
+  font-style: italic;
+}
+
+/* Subfolder container styling */
+.subfolder-group {
+  background: #f7f9fb;
+  border-radius: 8px;
+  margin: 12px 0;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  padding: 8px 0 4px 0;
+  border: 1px solid #e3e8ee;
+  transition: box-shadow 0.2s;
+}
+
+.subfolder-group.open {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.subfolder-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  padding: 4px 12px;
+  cursor: pointer;
+  background: #eaf1fb;
+  border-radius: 6px;
+}
+
+.subfolder-folder-icon {
+  display: inline-flex;
+  margin-right: 4px;
+  color: #6c7a89;
+}
+
+.subfolder-toggle-btn {
+  margin-left: auto;
+  background: none;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  color: #6c7a89;
+  transition: color 0.2s;
+}
+
+.bookmarks-container {
+  padding: 4px 12px;
+}
+
+.subfolder-group:not(.open) .bookmarks-container {
+  display: none;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .settings-text {

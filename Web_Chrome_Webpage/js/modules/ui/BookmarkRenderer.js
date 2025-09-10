@@ -2,7 +2,7 @@ import { createElement, getDomain } from '../utils.js';
 
 /* ---------- Helpers ---------- */
 function chromeFavicon(url, size = 16, dpr = window.devicePixelRatio || 1) {
-  // Chrome supports high-DPI variants with @2x
+  // Still here if you later want to re-enable favicons
   const scale = dpr >= 1.5 ? '@2x' : '';
   return `chrome://favicon/size/${size}${scale}/${url}`;
 }
@@ -11,22 +11,22 @@ export class BookmarkRenderer {
   constructor() {
     // Callbacks from outer components
     this.onBookmarkOrderChanged = null;
-    // Optional: if you maintain an in-memory map { [id]: bookmark }
+    // Optional in-memory map { [id]: bookmark }
     // this.bookmarks = {};
   }
   
   /**
    * Set callback for when bookmark order changes
-   * @param {Function} callback Callback function
+   * @param {Function} callback
    */
   setOrderChangedCallback(callback) {
     this.onBookmarkOrderChanged = callback;
   }
 
   /**
-   * Create a bookmark item element
-   * @param {Object} bookmark Bookmark data
-   * @returns {HTMLElement} Bookmark item element
+   * Create a bookmark item element (favicon removed)
+   * @param {Object} bookmark
+   * @returns {HTMLElement}
    */
   createBookmarkItem(bookmark) {
     const item = createElement('div', 'bookmark-item');
@@ -36,29 +36,7 @@ export class BookmarkRenderer {
 
     const content = createElement('div', 'bookmark-content');
 
-    // --- Favicon from the site via Chrome's built-in service ---
-    const favicon = document.createElement('img');
-    favicon.className = 'bookmark-favicon';
-    favicon.loading = 'lazy';
-    favicon.alt = '';
-    favicon.src = chromeFavicon(bookmark.url, 16);
-
-    // Fallback: try the origin once, then tiny globe
-    favicon.onerror = () => {
-      favicon.onerror = () => {
-        favicon.onerror = null;
-        favicon.src =
-          'data:image/svg+xml;utf8,' +
-          encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><text x="0" y="14" font-size="16">🌐</text></svg>');
-      };
-      try {
-        const origin = new URL(bookmark.url).origin;
-        favicon.src = chromeFavicon(origin, 16);
-      } catch {
-        favicon.onerror();
-      }
-    };
-
+    // === NO FAVICON: intentionally omitted ===
 
     // Title
     const title = createElement('div', 'bookmark-title');
@@ -75,7 +53,7 @@ export class BookmarkRenderer {
     // Edit
     const editButton = createElement('button', 'bookmark-action edit-btn');
     editButton.innerHTML = `
-      <svg width="14" height="14" viewBox="0 0 24 24">
+      <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
         <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
       </svg>
     `;
@@ -84,7 +62,7 @@ export class BookmarkRenderer {
     // Delete
     const deleteButton = createElement('button', 'bookmark-action delete-btn');
     deleteButton.innerHTML = `
-      <svg width="14" height="14" viewBox="0 0 24 24">
+      <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
         <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
       </svg>
     `;
@@ -93,8 +71,7 @@ export class BookmarkRenderer {
     actions.appendChild(editButton);
     actions.appendChild(deleteButton);
 
-    // Assemble (no double-append)
-    content.appendChild(favicon);
+    // Assemble (no favicon)
     content.appendChild(title);
     content.appendChild(domain);
     item.appendChild(content);
@@ -111,42 +88,43 @@ export class BookmarkRenderer {
   }
   
   /**
-   * Update specific bookmark display
-   * @param {Object} bookmark Bookmark data
+   * Update specific bookmark display (safe if no favicon exists)
+   * @param {Object} bookmark
    */
   updateBookmarkItem(bookmark) {
     const item = document.querySelector(`.bookmark-item[data-bookmark-id="${bookmark.id}"]`);
     if (!item) return;
 
     const title = item.querySelector('.bookmark-title');
+    // Might be null because we removed favicons intentionally
     const favicon = item.querySelector('.bookmark-favicon');
 
     title.textContent = bookmark.title || getDomain(bookmark.url);
     item.dataset.url = bookmark.url;
 
-    // Re-resolve favicon from Chrome (add cache-buster so Chrome refetches if needed)
-    favicon.onerror = () => {
+    // Skip favicon updates when it doesn't exist
+    if (favicon) {
       favicon.onerror = () => {
-        favicon.onerror = null;
-        favicon.src =
-          'data:image/svg+xml;utf8,' +
-          encodeURIComponent(
-            '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><text x="0" y="14" font-size="16">🌐</text></svg>'
-          );
+        favicon.onerror = () => {
+          favicon.onerror = null;
+          favicon.src =
+            'data:image/svg+xml;utf8,' +
+            encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><text x="0" y="14" font-size="16">🌐</text></svg>');
+        };
+        try {
+          const origin = new URL(bookmark.url).origin;
+          favicon.src = chromeFavicon(origin, 16) + `#${Date.now()}`;
+        } catch {
+          favicon.onerror();
+        }
       };
-      try {
-        const origin = new URL(bookmark.url).origin;
-        favicon.src = chromeFavicon(origin, 16) + `#${Date.now()}`;
-      } catch {
-        favicon.onerror();
-      }
-    };
-    favicon.src = chromeFavicon(bookmark.url, 16) + `#${Date.now()}`;
+      favicon.src = chromeFavicon(bookmark.url, 16) + `#${Date.now()}`;
+    }
   }
   
   /**
    * Remove single bookmark element
-   * @param {string} bookmarkId Bookmark ID to remove
+   * @param {string} bookmarkId
    */
   removeBookmarkItem(bookmarkId) {
     const bookmarkItem = document.querySelector(`.bookmark-item[data-bookmark-id="${bookmarkId}"]`);
@@ -181,7 +159,7 @@ export class BookmarkRenderer {
   
   /**
    * Create empty folder message
-   * @returns {HTMLElement} Message element
+   * @returns {HTMLElement}
    */
   createEmptyMessage() {
     const empty = createElement('div', 'empty-column');
@@ -190,10 +168,10 @@ export class BookmarkRenderer {
   }
   
   /**
-   * Render subfolder group
-   * @param {Object} folder Folder data
-   * @param {HTMLElement} container Container element
-   * @param {Array} savedBookmarkOrder Saved bookmark order
+   * Render subfolder group (keeps folder icon)
+   * @param {Object} folder
+   * @param {HTMLElement} container
+   * @param {Array} savedBookmarkOrder
    */
   renderSubfolderGroup(folder, container, savedBookmarkOrder) {
     const subfolderGroup = createElement('div', 'subfolder-group');
@@ -234,9 +212,9 @@ export class BookmarkRenderer {
   }
   
   /**
-   * Create subfolder header with folder icon (with larger margins)
-   * @param {Object} folder Subfolder data
-   * @returns {HTMLElement} Subfolder header element
+   * Create subfolder header WITH folder icon
+   * @param {Object} folder
+   * @returns {HTMLElement}
    */
   createSubfolderHeader(folder) {
     const subfolderHeader = createElement('div', 'subfolder-header');
@@ -247,19 +225,19 @@ export class BookmarkRenderer {
     subfolderHeader.style.display = 'flex';
     subfolderHeader.style.alignItems = 'center';
 
-    // Folder icon (SVG)
+    // Folder icon (SVG) — kept
     const folderIcon = document.createElement('span');
     folderIcon.className = 'subfolder-folder-icon';
-    folderIcon.style.marginRight = '8px'; // spacing between icon & title
+    folderIcon.style.marginRight = '8px';
     folderIcon.innerHTML = `
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" 
-        stroke="currentColor" stroke-width="2" stroke-linecap="round" 
-        stroke-linejoin="round">
-        <path d="M3 7V5a2 2 0 0 1 2-2h3.5a2 2 0 0 1 1.6.8l1.7 2.4H19a2 2 0 0 1 
-          2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="2" stroke-linecap="round"
+        stroke-linejoin="round" aria-hidden="true" focusable="false">
+        <path d="M3 7V5a2 2 0 0 1 2-2h3.5a2 2 0 0 1 1.6.8l1.7 2.4H19a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/>
       </svg>
     `;
     subfolderHeader.appendChild(folderIcon);
+
     return subfolderHeader;
   }
 }

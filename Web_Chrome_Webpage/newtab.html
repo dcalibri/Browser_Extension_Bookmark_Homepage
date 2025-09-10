@@ -12,43 +12,17 @@
   <link rel="stylesheet" href="css/themes.css">
   <script src="lib/Sortable.min.js"></script>
 </head>
-<body>
-  <header>
-    <div id="event-label-badges" style="position: absolute; top: 18px; right: 32px; z-index: 1000; display: flex; gap: 8px;"></div>
+
+  <header class="app-header">
+    <!-- badges -->
+    <div id="event-label-badges" style="position:absolute; top:18px; right:32px; z-index:1000; display:flex; gap:8px;"></div>
+
+    <!-- LEFT: clocks (with optional big time/date if you use them) -->
     <div class="header-left">
-      <h1>Bookmark Kanban</h1>
-    </div>
-    <div class="header-controls">
-      <div id="check-sites-button" class="header-button" title="Check bookmarks availability">
-        <span class="check-icon">🔍</span>
-        <span class="check-text">Check Sites</span>
-        <span class="check-progress" style="display: none;">0/0</span>
-      </div>
-      <div id="settings-button" class="header-button" title="Open settings">
-        <span class="settings-icon">⚙️</span>
-        <span class="settings-text">Settings</span>
-      </div>
-      <div id="gc-collect-button" class="header-button" title="Collect Google Classroom to-dos">
-        <span class="check-icon">📚</span>
-        <span class="check-text">GC Collect</span>
-      </div>
-      <div id="yt-clean-button" class="header-button" title="Close other YouTube tabs">
-        <span class="check-icon">🧹</span>
-        <span class="check-text">YT Clean</span>
-      </div>
       <div id="current-time"></div>
       <div id="current-date"></div>
+
       <div class="world-clocks">
-        <div class="clock" id="clock-tokyo">
-          <span class="clock-label">Tokyo</span>
-          <span class="clock-time" id="tokyo-time"></span>
-          <span class="clock-date" id="tokyo-date"></span>
-        </div>
-        <div class="clock" id="clock-riyadh">
-          <span class="clock-label">Riyadh</span>
-          <span class="clock-time" id="riyadh-time"></span>
-          <span class="clock-date" id="riyadh-date"></span>
-        </div>
         <div class="clock" id="clock-jakarta" onclick="window.open('https://www.google.com/search?q=jakarta+weather')">
           <span class="clock-label">Jakarta</span>
           <span class="clock-time" id="jakarta-time"></span>
@@ -66,7 +40,36 @@
         </div>
       </div>
     </div>
+
+    <!-- CENTER: Bismillah -->
+    <div class="header-center">
+      <span class="bismillah" title="Bismillāhirraḥmānirraḥīm">
+        بِسْمِ ٱللّٰهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ
+      </span>
+    </div>
+
+    <!-- RIGHT: buttons -->
+    <div class="header-right header-controls">
+      <div id="check-sites-button" class="header-button" title="Check bookmarks availability">
+        <span class="check-icon">🔍</span>
+        <span class="check-text">Check Sites</span>
+        <span class="check-progress" style="display:none;">0/0</span>
+      </div>
+      <div id="settings-button" class="header-button" title="Open settings">
+        <span class="settings-icon">⚙️</span>
+        <span class="settings-text">Settings</span>
+      </div>
+      <div id="gc-collect-button" class="header-button" title="Collect Google Classroom to-dos">
+        <span class="check-icon">📚</span>
+        <span class="check-text">GC Collect</span>
+      </div>
+      <div id="yt-clean-button" class="header-button" title="Close other YouTube tabs">
+        <span class="check-icon">🧹</span>
+        <span class="check-text">YT Clean</span>
+      </div>
+    </div>
   </header>
+
   
   <main id="kanban-container">
     <!-- Kanban columns with collapsible folders/subfolders -->

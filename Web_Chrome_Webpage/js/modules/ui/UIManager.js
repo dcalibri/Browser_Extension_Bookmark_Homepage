@@ -34,27 +34,49 @@ export class UIManager {
    * Initialize time update
    */
   initializeTimeUpdate() {
-    const updateDateTime = () => {
-      const { time, date } = formatDateTime(new Date());
-      document.getElementById('current-time').textContent = time;
-      document.getElementById('current-date').textContent = date;
+    const timeLocalFmt = new Intl.DateTimeFormat([], {
+      hour: '2-digit', minute: '2-digit', hour12: false
+    });
+    const timeTzFmt = (tz) => new Intl.DateTimeFormat([], {
+      hour: '2-digit', minute: '2-digit', hour12: false, timeZone: tz
+    });
+    // Pakai formatter tanggal yang sudah ada di project-mu kalau mau
+    const dateLocalFmt = new Intl.DateTimeFormat([], {
+      weekday: 'short', day: '2-digit', month: 'short', year: 'numeric'
+    });
+    const dateTzFmt = (tz) => new Intl.DateTimeFormat([], {
+      weekday: 'short', day: '2-digit', month: 'short', year: 'numeric', timeZone: tz
+    });
 
+    const updateDateTime = () => {
       const now = new Date();
-      const tokyo = formatDateTimeInZone(now, 'Asia/Tokyo');
-      const riyadh = formatDateTimeInZone(now, 'Asia/Riyadh');
-      const tokyoTime = document.getElementById('tokyo-time');
-      const tokyoDate = document.getElementById('tokyo-date');
-      const riyadhTime = document.getElementById('riyadh-time');
-      const riyadhDate = document.getElementById('riyadh-date');
-      if (tokyoTime) tokyoTime.textContent = tokyo.time;
-      if (tokyoDate) tokyoDate.textContent = tokyo.date;
-      if (riyadhTime) riyadhTime.textContent = riyadh.time;
-      if (riyadhDate) riyadhDate.textContent = riyadh.date;
+
+      // Lokal: HH:mm saja
+      const ct = document.getElementById('current-time');
+      if (ct) ct.textContent = timeLocalFmt.format(now);
+
+      // Tanggal lokal (tetap seperti biasa)
+      const cd = document.getElementById('current-date');
+      if (cd) cd.textContent = dateLocalFmt.format(now);
+
+      // Zona lain: HH:mm saja
+      const setZone = (prefix, tz) => {
+        const t = document.getElementById(`${prefix}-time`);
+        const d = document.getElementById(`${prefix}-date`);
+        if (t) t.textContent = timeTzFmt(tz).format(now);
+        if (d) d.textContent = dateTzFmt(tz).format(now);
+      };
+
+      setZone('tokyo',  'Asia/Tokyo');
+      setZone('riyadh', 'Asia/Riyadh');
+      // Tambahkan kalau ada kota lain:
+      // setZone('jakarta', 'Asia/Jakarta');
     };
 
     updateDateTime();
     setInterval(updateDateTime, 1000);
   }
+
 
   /**
    * Render the kanban board

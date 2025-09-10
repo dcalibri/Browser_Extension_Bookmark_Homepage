@@ -1,8 +1,6 @@
-// js/modules/faviconLoader.js
 /**
  * Website Icon Loader
- * 
- * Handles lazy loading, caching, and error handling of website icons
+ * Loads real website favicons first, fallback to Google API, then default
  */
 import { siteChecker } from './siteChecker.js';
 
@@ -10,20 +8,17 @@ export class FaviconLoader {
   constructor() {
     this.iconCache = new Map();
     this.failedHosts = new Set();
-    this.defaultIcon = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAACXBIWXMAAAsTAAALEwEAmpwYAAAA2klEQVR4nM3TMUoDURDF8d8mKIqFYGFhYWHhCdR7WFioWNp4AA8gWHkDj2BhYWFhYWEhiKKgKAYM+C1sYFniguIWPnh8Zt7M/2PezBL+qgZWMcYmunhAHxc4wQB3+MANTrGEVmJ+xDxOsJ0D3GIeZwl4G6dYxAzW8IQ1rKfvIT7xjm5U0McFdrD0S7qP2McN3vCKh7hZxiQusYsmbvGMS1QRMY+wgfUE7mAkXa6whzFsYQZ9vOMZYxjHfDQ/4wuTeEETY5iKylXsppkrHGIlmn/UNxpSTyWtFPYrAAAAAElFTkSuQmCC';
+    this.defaultIcon = 'icons/default-favicon.png'; // pakai file lokal default
     this.observer = null;
   }
 
   initialize() {
-    if (this.observer) {
-      this.observer.disconnect();
-    }
+    if (this.observer) this.observer.disconnect();
 
     this.observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
           const iconElement = entry.target;
-          
           if (iconElement.dataset.loaded !== 'true' && iconElement.dataset.hostname) {
             this.loadIcon(iconElement, iconElement.dataset.hostname);
           } else {
@@ -31,9 +26,7 @@ export class FaviconLoader {
           }
         }
       });
-    }, {
-      rootMargin: '100px'
-    });
+    }, { rootMargin: '100px' });
 
     document.querySelectorAll('.bookmark-icon').forEach(icon => {
       if (icon.dataset.loaded !== 'true') {
@@ -46,18 +39,14 @@ export class FaviconLoader {
 
   /**
    * Load icon
-   * @param {HTMLImageElement} iconElement Icon element
-   * @param {string} hostname Hostname
    */
   async loadIcon(iconElement, hostname) {
-    // Check cache
     if (this.iconCache.has(hostname)) {
       this.updateIconWithCache(iconElement, hostname);
       return;
     }
 
     try {
-      // Try to load icon
       const iconUrl = await this.tryLoadIcon(hostname);
       if (iconUrl) {
         this.iconCache.set(hostname, iconUrl);
@@ -65,113 +54,77 @@ export class FaviconLoader {
         return;
       }
 
-      // If icon loading fails, check website availability
-      const isAvailable = await siteChecker.checkSite(hostname);
-      if (isAvailable) {
-        // Website is available but has no icon, use default icon
-        this.updateIconStatus(iconElement, true, this.defaultIcon);
-      } else {
-        // Website may be unavailable, mark as failed state
-        this.updateIconStatus(iconElement, false, this.defaultIcon);
-      }
-    } catch (error) {
-      console.error(`Failed to load icon: ${hostname}`, error);
+      // If no icon found → default
+      this.updateIconStatus(iconElement, false, this.defaultIcon);
+
+    } catch (err) {
+      console.error(`Favicon load failed for ${hostname}`, err);
       this.updateIconStatus(iconElement, false, this.defaultIcon);
     }
   }
 
   /**
-   * Try to load icon from different sources
-   * @param {string} hostname Hostname
-   * @returns {Promise<string|null>} Icon URL or null
+   * Try to load icon from actual website first, then Google, then default
    */
   async tryLoadIcon(hostname) {
-    // First try Google Favicon service
-    try {
-      const googleUrl = `https://www.google.com/s2/favicons?sz=64&domain=${hostname}`;
-      const available = await this.checkImageAvailable(googleUrl);
-      if (available) return googleUrl;
-    } catch (error) {
-      console.debug('Google Favicon service load failed', error);
-    }
-
-    // Try website's own icons
-    const iconUrls = [
+    const urls = [
       `https://${hostname}/favicon.ico`,
-      `https://${hostname}/apple-touch-icon.png`
+      `https://${hostname}/apple-touch-icon.png`,
     ];
 
-    for (const url of iconUrls) {
-      try {
-        const available = await this.checkImageAvailable(url);
-        if (available) return url;
-      } catch (error) {
-        console.debug(`Icon load failed: ${url}`, error);
+    // Test real site favicon first
+    for (const url of urls) {
+      if (await this.checkImageAvailable(url)) {
+        return url;
       }
     }
 
+    // Fallback: Google favicon service
+    const googleUrl = `https://www.google.com/s2/favicons?sz=64&domain=${hostname}`;
+    if (await this.checkImageAvailable(googleUrl)) {
+      return googleUrl;
+    }
+
+    // No luck → return null
     return null;
   }
 
-  /**
-   * Check if image is available
-   * @param {string} url Image URL
-   * @returns {Promise<boolean>}
-   */
   checkImageAvailable(url) {
     return new Promise((resolve) => {
       const img = new Image();
-      img.onload = () => resolve(true);
-      img.onerror = () => resolve(false);
+      let done = false;
+
+      img.onload = () => { if (!done) { done = true; resolve(true); } };
+      img.onerror = () => { if (!done) { done = true; resolve(false); } };
       img.src = url;
 
-      // Set timeout
-      setTimeout(() => resolve(false), 3000);
+      setTimeout(() => { if (!done) resolve(false); }, 3000);
     });
   }
 
-  /**
-   * Update icon status
-   * @param {HTMLImageElement} element Icon element
-   * @param {boolean} isAvailable Whether available
-   * @param {string} iconUrl Icon URL
-   */
-  updateIconStatus(element, isAvailable, iconUrl) {
+  updateIconStatus(element, ok, iconUrl) {
     element.src = iconUrl;
     element.dataset.loaded = 'true';
-    
     const bookmarkItem = element.closest('.bookmark-item');
     if (bookmarkItem) {
-      bookmarkItem.dataset.siteStatus = isAvailable ? 'available' : 'unavailable';
-      if (!isAvailable) {
-        bookmarkItem.title = 'This website may be unavailable or inaccessible';
-      }
+      bookmarkItem.dataset.siteStatus = ok ? 'available' : 'unavailable';
     }
-    
     this.observer.unobserve(element);
   }
 
-  /**
-   * Update icon from cache
-   * @param {HTMLImageElement} element Icon element
-   * @param {string} hostname Hostname
-   */
   updateIconWithCache(element, hostname) {
-    const iconUrl = this.iconCache.get(hostname);
-    const status = siteChecker.getCachedStatus(hostname);
-    this.updateIconStatus(element, status !== false, iconUrl || this.defaultIcon);
+    const iconUrl = this.iconCache.get(hostname) || this.defaultIcon;
+    this.updateIconStatus(element, true, iconUrl);
   }
 
   prepareIconElement(icon, url) {
     try {
       const domain = new URL(url).hostname;
-      icon.src = `https://www.google.com/s2/favicons?domain=${domain}`;
-      icon.onerror = () => {
-        // Use local default icon when loading fails
-        icon.src = 'icons/default-favicon.png';
-      };
-    } catch (e) {
-      icon.src = 'icons/default-favicon.png';
+      icon.dataset.hostname = domain;
+      icon.classList.add('bookmark-icon');
+      icon.src = this.defaultIcon; // sementara default
+    } catch {
+      icon.src = this.defaultIcon;
     }
   }
 

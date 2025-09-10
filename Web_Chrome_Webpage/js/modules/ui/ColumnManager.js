@@ -20,10 +20,7 @@ export class ColumnManager {
     column.dataset.folderId = folder.id;
 
     const folderIcon = document.createElement('span');
-    folderIcon.className = 'column-folder-icon';
-    folderIcon.innerHTML =
-      '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h3.5a2 2 0 0 1 1.6.8l1.7 2.4H19a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg>';
-
+    
     const header = this.createColumnHeader(folder.title, this.countBookmarksInFolder(folder));
     header.insertBefore(folderIcon, header.firstChild);
     column.appendChild(header);
@@ -325,9 +322,65 @@ export class ColumnManager {
     });
   }
 
+  async saveSubfolderTitle(folderId, newTitle, titleElement) {
+    try {
+      const result = await chrome.bookmarks.update(folderId, { title: newTitle });
+      titleElement.textContent = result.title;
+      this.notificationService.showToast(`Subfolder title updated to "${newTitle}"`, 'success');
+      return true;
+    } catch (error) {
+      this.notificationService.showToast('Failed to update subfolder title', 'error');
+      return false;
+    }
+  }
+
   finishTitleEdit(inputElement, titleElement) {
     titleElement.style.display = '';
     if (inputElement.parentNode) inputElement.parentNode.removeChild(inputElement);
+  }
+
+  handleSubfolderTitleEdit(titleElement, folderId) {
+    console.log('Subfolder title edit initiated for folder:', folderId);
+    const originalTitle = titleElement.textContent;
+
+    const inputElement = document.createElement('input');
+    inputElement.type = 'text';
+    inputElement.className = 'subfolder-title-edit';
+    inputElement.value = originalTitle;
+    inputElement.style.width = '100%';
+    inputElement.style.padding = '2px';
+    inputElement.style.border = '1px solid var(--primary-color)';
+    inputElement.style.borderRadius = 'var(--border-radius)';
+    inputElement.style.fontSize = titleElement.style.fontSize || '0.9rem';
+
+    titleElement.style.display = 'none';
+    titleElement.parentNode.insertBefore(inputElement, titleElement.nextSibling);
+
+    inputElement.focus();
+    inputElement.select();
+
+    inputElement.addEventListener('keydown', async (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const newTitle = inputElement.value.trim();
+        if (!newTitle) {
+          inputElement.style.borderColor = 'var(--danger-color)';
+          return;
+        }
+        await this.saveSubfolderTitle(folderId, newTitle, titleElement);
+        this.finishTitleEdit(inputElement, titleElement);
+      } else if (e.key === 'Escape') {
+        this.finishTitleEdit(inputElement, titleElement);
+      }
+    });
+
+    inputElement.addEventListener('blur', () => {
+      setTimeout(() => {
+        if (document.body.contains(inputElement)) {
+          this.finishTitleEdit(inputElement, titleElement);
+        }
+      }, 100);
+    });
   }
 
   async saveColumnTitle(folderId, newTitle, titleElement) {
@@ -376,6 +429,11 @@ export class ColumnManager {
     subfolderToggle.textContent = '▼';
     const subfolderTitle = createElement('div', 'subfolder-title');
     subfolderTitle.textContent = folder.title;
+
+    // Add double-click to rename subfolder
+    subfolderTitle.addEventListener('dblclick', () => {
+      this.handleSubfolderTitleEdit(subfolderTitle, folder.id);
+    });
 
     subfolderHeader.appendChild(subfolderToggle);
     subfolderHeader.appendChild(subfolderTitle);

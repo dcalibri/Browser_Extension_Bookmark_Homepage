@@ -33,13 +33,15 @@ Menyediakan sistem bookmark visual berbasis **kanban interaktif**, mempermudah:
 
 ## 🔄 Update Tracker
 
-| No | Jenis Update dan Context                                                    | %   | Inisiate Date/Time     | Status      | Commited Date/Time   |
-|----|-----------------------------------------------------------------------------|------|-------------------------|-------------|-----------------------|
-| 01 | FixBug: Bisa drag-and-drop ke empty subfolder                              | Now  | 2025-09-11 08:45        | Pending     | –                    |
-| 02 | AddFeat: Mendukung subfolder hingga level-3                                 | Now  | 2025-09-11 08:46        | Pending     | –                    |
-| 03 | FixBug: Tab Cleaner YouTube – hapus semua tab kecuali tab yang sedang aktif | Now  | 2025-09-11 08:47        | Pending     | –                    |
-| 04 | FixBug: Supaya tampilan settings menu lebih rapi dan tidak overflow         | Now  | 2025-09-11 10:15        | Pending     | –                    |
-| 05 | AddFeat: Tambahkan 3 dropdown regional opsional (misal: Asia/EU/Global) dengan bantuan library pilihan (misal: Select.js) | Next | 2025-09-11 10:18        | Pending     | –                    |
+## 🔄 Update Tracker
+| No | Jenis Update dan Context                                                                                                    | %    | Inisiate Date/Time     | Status   | Commited Date/Time   |
+|----|-----------------------------------------------------------------------------------------------------------------------------|------|-------------------------|----------|-----------------------|
+| 01 | FixBug: Bisa drag-and-drop ke empty subfolder                                                                               | Now  | 2025-09-11 08:45        | Pending  | –                    |
+| 02 | AddFeat: Mendukung subfolder hingga level-3                                                                                 | Now  | 2025-09-11 08:46        | Pending  | –                    |
+| 03 | FixBug: Tab Cleaner YouTube – hapus semua tab kecuali tab yang sedang aktif                                                | Now  | 2025-09-11 08:47        | Pending  | –                    |
+| 04 | FixBug: Supaya tampilan settings menu lebih rapi dan tidak overflow                                                         | Now  | 2025-09-11 10:15        | Pending  | –                    |
+| 05 | AddFeat: Tambahkan 3 dropdown regional opsional (misal: Asia/EU/Global) dengan bantuan library pilihan (misal: Select.js)  | Next | 2025-09-11 10:18        | Pending  | –                    |
+| 06 | AddFeat: Tombol navigasi untuk membatasi tab homepage — bisa pilih mode open one tab only atau eliminasi semua homepage     | Next | 2025-09-11 10:38        | Pending  | –                    |
 
 ---
 ## Previews

@@ -41,14 +41,17 @@ Menyediakan sistem bookmark visual berbasis **kanban interaktif**, mempermudah:
 | 04 | FixBug: Supaya tampilan settings menu lebih rapi dan tidak overflow         | Now  | 2025-09-11 10:15        | Pending     | –                    |
 | 05 | AddFeat: Tambahkan 3 dropdown regional opsional (misal: Asia/EU/Global) dengan bantuan library pilihan (misal: Select.js) | Next | 2025-09-11 10:18        | Pending     | –                    |
 
+---
+## Previews
+![UI Utama](./Screenshots/overview-kanban.jpg)
+
+
 
 ---
-
 ## 👨‍💻 Kontribusi & Feedback
 
-Silakan buka issue atau kirim pull request ke:  
+### Silakan buka issue atau kirim pull request ke:  
 🔗 [github.com/dcalibri/bookmark-kanban-extension](#)
 
----
-## 👥 Kontributor
+### 👥 Kontributor
 - `dcalibri`

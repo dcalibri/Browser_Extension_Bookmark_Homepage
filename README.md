@@ -43,7 +43,7 @@ Menyediakan sistem bookmark visual berbasis **kanban interaktif**, mempermudah:
 
 ---
 ## Previews
-![UI Utama](./Screenshots/overview-kanban.jpg)
+![UI Utama](./Screenshots/Screenshot 2025-09-11 193700.jpg)
 
 
 

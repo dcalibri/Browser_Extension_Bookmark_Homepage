@@ -53,7 +53,7 @@ Menyediakan sistem bookmark visual berbasis **kanban interaktif**, mempermudah:
 ## 👨‍💻 Kontribusi & Feedback
 
 ### Silakan buka issue atau kirim pull request ke:  
-🔗 [github.com/dcalibri/bookmark-kanban-extension](#)
+🔗 [github.com/dcalibri/Browser_Extension_Bookmark_Homepage
 
 ### 👥 Kontributor
 - `dcalibri`
